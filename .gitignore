@@ -1,0 +1,42 @@
+# --- Секреты и настройки (КРИТИЧЕСКИ ВАЖНО) ---
+.env
+.env.[a-zA-Z]*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# --- Виртуальные окружения ---
+
+.venv/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Кэш Python и байт-код ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Настройки редакторов кода (IDE) ---
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# --- Локальные базы данных (для тестов) ---
+*.sqlite3
+*.db
+
+# --- Системные файлы ---
+.DS_Store
+Thumbs.db
