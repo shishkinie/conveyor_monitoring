@@ -1,5 +1,5 @@
 from app.core.base_dao import BaseDAO
-from app.conveyors.models import Conveyor, Component, ComponentType, Criteria
+from app.conveyors.models import Conveyor
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
