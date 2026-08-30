@@ -30,3 +30,7 @@ class ComponentDAO(BaseDAO):
     
 class CriteriaDAO(BaseDAO):
     model = Criteria
+
+
+
+

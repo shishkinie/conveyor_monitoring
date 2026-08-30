@@ -32,4 +32,15 @@ class BaseDAO:
         await session.commit()
         await session.refresh(model)
         return model
+
+    @classmethod
+    async def delete(cls, session: AsyncSession, id: int):
+ 
+        model = await cls.find_by_id(id, session)
+
+        
+        await session.delete(model)
+        await session.commit()
+        return model
+    
       

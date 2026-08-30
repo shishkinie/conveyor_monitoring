@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import IncorrectUsernameOrPassword, UserAlreadyExistException
-from app.catalog.schemas import ComponentTypeRead, ComponentTypeCreate, ComponentCreate
+from app.catalog.schemas import ComponentTypeRead, ComponentTypeCreate, ComponentCreate, ComponentRead
 from app.users.auth import AuthHandler
 
 from app.catalog.dao import ComponentDAO, ComponentTypeDAO, CriteriaDAO
@@ -25,12 +25,27 @@ async def create_component_type(data: ComponentTypeCreate, session: AsyncSession
     return types
 
 
+@router.delete("/types/delete", response_model=ComponentTypeRead)
+async def delete_component_type(id: int, session: AsyncSession = Depends(get_db)):
+    result = await ComponentTypeDAO.delete(session, id)
+    return result
 
-# @router.get("/components", response_model=ComponentResponseSchema)
-# async def get_components(conveyor_id: int, session: AsyncSession = Depends(get_db)):
-#     components = await ComponentDAO.find_all(session, lazy=False)
-#     return components
 
+@router.post("/components/create", response_model=ComponentRead)
+async def create_component(component: ComponentCreate, session: AsyncSession = Depends(get_db)):
+    component = await ComponentDAO.create(
+        session, 
+        name=component.name, 
+        conveyor_id=component.conveyor_id,
+        component_type_id=component.component_type_id
+    )
+
+    return component
+
+@router.delete("/components/delete", response_model=ComponentRead)
+async def delete_component(component_id: int, session: AsyncSession = Depends(get_db)):
+    result = await ComponentDAO.delete(session, component_id)
+    return result
 
 
 # @router.post("/delete_type")
