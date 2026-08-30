@@ -46,15 +46,3 @@ async def create_component(component: ComponentCreate, session: AsyncSession = D
 async def delete_component(component_id: int, session: AsyncSession = Depends(get_db)):
     result = await ComponentDAO.delete(session, component_id)
     return result
-
-
-# @router.post("/delete_type")
-# async def delete_type(conveyor_id: int, session: AsyncSession = Depends(get_db)):
-#     conveyor = await ConveyorDAO.find_by_id(conveyor_id, session)
-#     return conveyor.id, conveyor.name, conveyor.description, conveyor.components
-
-
-# @router.post("/create_component")
-# async def get_conveyors(conveyor_id: int, session: AsyncSession = Depends(get_db)):
-#     conveyor = await ConveyorDAO.find_by_id(conveyor_id, session)
-#     return conveyor.id, conveyor.name, conveyor.description, conveyor.components
