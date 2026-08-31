@@ -7,8 +7,12 @@ class CriteriaBase(BaseModel):
     component_id: int
 
 
+class CriteriaCreate(CriteriaBase):
+    pass 
+
 class CriteriaRead(CriteriaBase):
     id: int
+    model_config = {"from_attributes": True}
 
 
 # -----------------------------------------------

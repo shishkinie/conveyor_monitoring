@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import IncorrectUsernameOrPassword, UserAlreadyExistException
-from app.catalog.schemas import ComponentTypeRead, ComponentTypeCreate, ComponentCreate, ComponentRead
+from app.catalog.schemas import ComponentTypeRead, ComponentTypeCreate, ComponentCreate, ComponentRead, ComponentWithPartsRead, CriteriaRead, CriteriaCreate
 from app.users.auth import AuthHandler
 
 from app.catalog.dao import ComponentDAO, ComponentTypeDAO, CriteriaDAO
@@ -46,3 +46,25 @@ async def create_component(component: ComponentCreate, session: AsyncSession = D
 async def delete_component(component_id: int, session: AsyncSession = Depends(get_db)):
     result = await ComponentDAO.delete(session, component_id)
     return result
+
+
+@router.get("/components/{component_id}", response_model=ComponentWithPartsRead)
+async def get_component(component_id: int, session: AsyncSession = Depends(get_db)):
+    result = await ComponentDAO.find_by_id(component_id, session, lazy=False)
+    return result
+
+@router.get("/components", response_model=list[ComponentRead])
+async def get_components(session: AsyncSession = Depends(get_db)):
+    components = await ComponentDAO.find_all(session)
+    return components
+
+
+@router.get("/criteria", response_model=list[CriteriaRead])
+async def get_criteria(session: AsyncSession = Depends(get_db)):
+    return await CriteriaDAO.find_all(session)
+
+
+@router.post("/criteria/create", response_model=CriteriaRead)
+async def create_criteria(data: CriteriaCreate, session: AsyncSession = Depends(get_db)):
+    return await CriteriaDAO.create(session, name=data.name, component_id=data.component_id)
+
