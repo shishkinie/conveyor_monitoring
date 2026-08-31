@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг конвейеров</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <h1>Мониторинг конвейеров</h1>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab active" data-tab="conveyors">Конвейеры</button>
+        <button class="tab" data-tab="catalog">Каталог</button>
+        <button class="tab" data-tab="audits">Аудиты</button>
+    </nav>
+
+    <main>
+        <!-- Конвейеры -->
+        <section id="tab-conveyors" class="tab-panel active">
+            <div id="conveyors-view">
+                <div class="grid">
+                    <article>
+                        <h2>Создать конвейер</h2>
+                        <form id="conveyor-form">
+                            <label>Название
+                                <input id="conveyor-name" required>
+                            </label>
+                            <label>Описание
+                                <input id="conveyor-desc" required>
+                            </label>
+                            <button type="submit">Добавить</button>
+                        </form>
+                        <p class="form-msg" id="conveyor-msg"></p>
+                    </article>
+                    <article>
+                        <h2>Список конвейеров</h2>
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Название</th><th>Описание</th><th></th></tr>
+                            </thead>
+                            <tbody id="conveyors-list">
+                                <tr><td colspan="4">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
+            </div>
+
+            <div id="conveyor-detail-view" class="hidden">
+                <button id="back-to-conveyors" class="secondary">← Назад к списку</button>
+                <h2 id="detail-title"></h2>
+
+                <article>
+                    <h2>Аудит</h2>
+                    <label>Текущий аудит
+                        <select id="audit-select"></select>
+                    </label>
+                    <div class="inline-form">
+                        <input id="audit-user-id" type="number" placeholder="ID пользователя">
+                        <button id="create-audit-btn">Создать аудит</button>
+                    </div>
+                    <p class="form-msg" id="audit-create-msg"></p>
+                </article>
+
+                <article>
+                    <h2>Общее состояние конвейера</h2>
+                    <div id="detail-overall">
+                        <p class="note">Загрузка...</p>
+                    </div>
+                </article>
+
+                <article>
+                    <h2>Детали конвейера</h2>
+                    <button id="add-component-btn">Добавить деталь</button>
+
+                    <div id="add-component-form-wrap" class="hidden">
+                        <form id="detail-component-form">
+                            <label>Деталь из каталога
+                                <select id="detail-component-select" required></select>
+                            </label>
+                            <button type="submit">Добавить</button>
+                            <button type="button" id="cancel-component-btn" class="secondary">Отмена</button>
+                        </form>
+                        <p class="form-msg" id="detail-component-msg"></p>
+                    </div>
+
+                    <div id="detail-components-list">
+                        <p class="note">Загрузка...</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Каталог -->
+        <section id="tab-catalog" class="tab-panel">
+            <div class="grid">
+                <article>
+                    <h2>Детали (каталог)</h2>
+                    <form id="catalog-component-form">
+                        <label>Название
+                            <input id="catalog-component-name" required>
+                        </label>
+                        <button type="submit">Добавить</button>
+                    </form>
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Название</th></tr>
+                        </thead>
+                        <tbody id="catalog-components-list">
+                            <tr><td colspan="2">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+            </div>
+        </section>
+
+        <!-- Аудиты -->
+        <section id="tab-audits" class="tab-panel">
+            <div class="grid">
+                <article>
+                    <h2>Создать аудит</h2>
+                    <form id="audit-form">
+                        <label>ID пользователя
+                            <input id="audit-user" type="number" required>
+                        </label>
+                        <button type="submit">Добавить</button>
+                    </form>
+                    <p class="form-msg" id="audit-msg"></p>
+                </article>
+                <article>
+                    <h2>Аудиты</h2>
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Пользователь</th><th>Создан</th></tr>
+                        </thead>
+                        <tbody id="audits-list">
+                            <tr><td colspan="3">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+                <article class="wide">
+                    <h2>Результаты аудитов</h2>
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Аудит</th><th>Критерий</th><th>Статус</th></tr>
+                        </thead>
+                        <tbody id="audit-results-list">
+                            <tr><td colspan="4">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

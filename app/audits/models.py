@@ -11,10 +11,6 @@ class Audit(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    
-
-
-
 
 
 class AuditResult(Base):
@@ -22,10 +18,7 @@ class AuditResult(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     audit_id: Mapped[int] = mapped_column(ForeignKey("audits.id"))
-    component_id: Mapped[int] = mapped_column(ForeignKey("components.id"))
     criteria_id: Mapped[int] = mapped_column(ForeignKey("criterias.id"))
     status: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
-    
-    component: Mapped["Component"] = relationship()
     criteria: Mapped["Criteria"] = relationship()

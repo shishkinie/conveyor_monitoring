@@ -9,6 +9,7 @@ from app.database import get_db
 from app.users.DAO import UserDAO, RoleDAO
 from app.users.models import User
 from app.users.auth import AuthHandler
+from app.users.dependencies import get_current_user, get_current_admin
 from app.users.schemas import UserCreateSchema, UserResponseSchema, TokenSchema
 
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Авторизация"])
 
 
 @router.post("/register", response_model=UserResponseSchema)
-async def register(payload: UserCreateSchema, session: AsyncSession = Depends(get_db)):
+async def register(payload: UserCreateSchema, session: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_admin)):
 
     role = await RoleDAO.find_one_or_none(session=session, name=payload.role)
 
@@ -24,6 +25,7 @@ async def register(payload: UserCreateSchema, session: AsyncSession = Depends(ge
         raise IncorrectUsernameOrPassword
 
     user = await UserDAO.find_one_or_none(session=session, username=payload.username)
+
     if user is not None:
         raise UserAlreadyExistException
     
@@ -57,7 +59,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Async
 
 
 @router.post("/me")
-async def me(session: AsyncSession = Depends(get_db), user: User = Depends(AuthHandler.get_current_user)):
+async def me(session: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     
     return user.id, user.username, user.role
 

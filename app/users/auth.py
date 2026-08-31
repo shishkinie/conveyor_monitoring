@@ -12,9 +12,7 @@ import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 class AuthHandler():
 
@@ -77,19 +75,4 @@ class AuthHandler():
         )
 
 
-    @staticmethod
-    async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_db)) -> User:
-
-        user_id = AuthHandler.decode_access_token(token=token)
-
-        from sqlalchemy.future import select
-        from sqlalchemy.orm import joinedload
     
-        query = select(User).where(User.id == user_id).options(joinedload(User.role))
-        result = await session.execute(query)
-        user = result.scalars().first()
-
-        if not user:
-            raise UserNotFound
-        
-        return user

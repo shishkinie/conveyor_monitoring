@@ -12,7 +12,8 @@ from app.config import settings #наш импорт
 
 from app.users.models import User, Role #Обязательно испортируем ВСЕ модели
 from app.audits.models import Audit, AuditResult
-from app.conveyors.models import Component, Conveyor, ComponentType, Criteria
+from app.conveyors.models import Conveyor
+from app.catalog.models import Component, ConveyorComponent, Criteria
 
 from app.database import Base #испортируем класс базы данных на основе которого создаются и хранятся таблицы 
 

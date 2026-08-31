@@ -1,48 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.exceptions import IncorrectUsernameOrPassword, UserAlreadyExistException
-from app.catalog.schemas import ComponentTypeRead, ComponentTypeCreate, ComponentCreate, ComponentRead
-from app.users.auth import AuthHandler
-
-from app.catalog.dao import ComponentDAO, ComponentTypeDAO, CriteriaDAO
-
 from app.database import get_db
+from app.catalog.dao import ComponentDAO, ConveyorComponentDAO, CriteriaDAO
+from app.catalog.schemas import ComponentCreate, ComponentRead, CriteriaCreate, CriteriaRead
 
 
-router = APIRouter(prefix="/catalog", tags=["Справочник деталей"])
+router = APIRouter(prefix="/catalog", tags=["Каталог деталей"])
 
 
-@router.get("/types", response_model=list[ComponentTypeRead])
-async def get_component_types(session: AsyncSession = Depends(get_db)):
-    types = await ComponentTypeDAO.find_all(session)
-    return types
-
-@router.post("/types/create", response_model=ComponentTypeRead)
-async def create_component_type(data: ComponentTypeCreate, session: AsyncSession = Depends(get_db)):
-    types = await ComponentTypeDAO.create(session, name=data.name)
-    return types
-
-
-@router.delete("/types/delete", response_model=ComponentTypeRead)
-async def delete_component_type(id: int, session: AsyncSession = Depends(get_db)):
-    result = await ComponentTypeDAO.delete(session, id)
-    return result
+@router.get("/components", response_model=list[ComponentRead])
+async def get_components(session: AsyncSession = Depends(get_db)):
+    return await ComponentDAO.find_all(session)
 
 
 @router.post("/components/create", response_model=ComponentRead)
-async def create_component(component: ComponentCreate, session: AsyncSession = Depends(get_db)):
-    component = await ComponentDAO.create(
-        session, 
-        name=component.name, 
-        conveyor_id=component.conveyor_id,
-        component_type_id=component.component_type_id
+async def create_component(data: ComponentCreate, session: AsyncSession = Depends(get_db)):
+    return await ComponentDAO.create(session, name=data.name)
+
+
+@router.get("/criteria", response_model=list[CriteriaRead])
+async def get_criteria(session: AsyncSession = Depends(get_db)):
+    return await CriteriaDAO.find_all(session)
+
+
+@router.post("/criteria/create", response_model=CriteriaRead)
+async def create_criteria(data: CriteriaCreate, session: AsyncSession = Depends(get_db)):
+    return await CriteriaDAO.create(
+        session,
+        name=data.name,
+        conveyor_component_id=data.conveyor_component_id,
     )
-
-    return component
-
-@router.delete("/components/delete", response_model=ComponentRead)
-async def delete_component(component_id: int, session: AsyncSession = Depends(get_db)):
-    result = await ComponentDAO.delete(session, component_id)
-    return result

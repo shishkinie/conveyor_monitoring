@@ -1,50 +1,39 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-
-class CriteriaBase(BaseModel):
+class ComponentCreate(BaseModel):
     name: str
+
+
+class ComponentRead(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CriteriaCreate(BaseModel):
+    name: str
+    conveyor_component_id: int
+
+
+class CriteriaRead(BaseModel):
+    id: int
+    name: str
+    conveyor_component_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConveyorComponentCreate(BaseModel):
     component_id: int
 
 
-class CriteriaRead(CriteriaBase):
+class ConveyorComponentRead(BaseModel):
     id: int
-
-
-# -----------------------------------------------
-
-class ComponentTypeCreate(BaseModel):
-
-    name: str
-
-
-class ComponentTypeRead(BaseModel):
-    
-    id: int
-    name: str
-
-    model_config = {"from_attributes": True}
-
-
-
-
-
-class ComponentBase(BaseModel):
-    name: str
     conveyor_id: int
-    component_type_id: int
+    component_id: int
+    component: ComponentRead | None = None
+    criterias: list[CriteriaRead] = []
 
-
-class ComponentCreate(ComponentBase):
-    pass  
-
-
-class ComponentRead(ComponentBase):
-
-    id: int
-    
-    model_config = {"from_attributes": True}
-
-
-class ComponentWithPartsRead(ComponentRead):
-    parts: list[CriteriaRead] 
+    model_config = ConfigDict(from_attributes=True)
