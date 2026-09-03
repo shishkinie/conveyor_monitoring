@@ -1,29 +1,82 @@
 const API = '';
+const TOKEN_KEY = 'cvm_token';
 
+let token = localStorage.getItem(TOKEN_KEY) || null;
+let currentUser = null;
 let currentConveyor = null;
-let selectedAuditId = null;
 let catalogComponents = [];
+let checkCriteria = [];
 
 function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (m) => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     }[m]));
 }
 
+function isAdmin() {
+    return currentUser && currentUser.role === 'admin';
+}
+
 async function api(path, options = {}) {
-    const config = { headers: { 'Content-Type': 'application/json' }, ...options };
-    if (options.headers) config.headers = { ...config.headers, ...options.headers };
+    const config = { headers: {}, ...options };
+    if (options.body && !config.headers['Content-Type']) {
+        config.headers['Content-Type'] = 'application/json';
+    }
+    if (token) config.headers['Authorization'] = 'Bearer ' + token;
     const res = await fetch(API + path, config);
+    if (res.status === 401) {
+        logout();
+        throw new Error('Требуется вход');
+    }
     if (!res.ok) {
         let detail = res.statusText;
-        try { const data = await res.json(); detail = JSON.stringify(data.detail ?? data); } catch (e) {}
+        try { const data = await res.json(); detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data); } catch (e) {}
         throw new Error(detail);
     }
     return res.json();
+}
+
+async function login(email, password) {
+    const body = new URLSearchParams({ username: email, password });
+    const res = await fetch(API + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+    });
+    if (!res.ok) {
+        let detail = res.statusText;
+        try { const data = await res.json(); detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail ?? data); } catch (e) {}
+        throw new Error(detail);
+    }
+    const data = await res.json();
+    token = data.access_token;
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+async function loadMe() {
+    currentUser = await api('/auth/me');
+    return currentUser;
+}
+
+function logout() {
+    token = null;
+    currentUser = null;
+    localStorage.removeItem(TOKEN_KEY);
+    document.getElementById('app').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function showApp() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('current-user').textContent = currentUser.username + ' (' + currentUser.role + ')';
+    applyRole();
+}
+
+function applyRole() {
+    document.querySelectorAll('.admin-only').forEach((el) => {
+        el.classList.toggle('hidden', !isAdmin());
+    });
 }
 
 /* ---------- Табы ---------- */
@@ -32,9 +85,32 @@ document.querySelectorAll('.tab').forEach((btn) => {
         document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        const panel = document.getElementById('tab-' + btn.dataset.tab);
+        if (panel) panel.classList.add('active');
+        if (btn.dataset.tab === 'check') loadCheck();
+        if (btn.dataset.tab === 'audits') { loadAudits(); loadAuditResults(); }
     });
 });
+
+/* ---------- Вход / выход ---------- */
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('login-msg');
+    msg.textContent = '';
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    try {
+        await login(email, password);
+        await loadMe();
+        showApp();
+        e.target.reset();
+        loadAll();
+    } catch (err) {
+        msg.textContent = 'Ошибка: ' + err.message;
+    }
+});
+
+document.getElementById('logout-btn').addEventListener('click', logout);
 
 /* ---------- Конвейеры: список ---------- */
 async function loadConveyors() {
@@ -73,7 +149,6 @@ function openConveyor(conveyor) {
     document.getElementById('conveyors-view').classList.add('hidden');
     document.getElementById('conveyor-detail-view').classList.remove('hidden');
     document.getElementById('detail-title').textContent = conveyor.name;
-    loadAuditSelect();
     loadConveyorDetail();
 }
 
@@ -127,6 +202,12 @@ function componentCard(cc, results) {
             </div>`;
         }).join('')
         : '<div class="note">Подкомпонентов пока нет</div>';
+    const addForm = isAdmin()
+        ? `<form class="criteria-form" data-cc="${cc.id}">
+            <input class="criteria-name" placeholder="Название подкомпонента" required>
+            <button type="submit">Добавить</button>
+        </form>`
+        : '';
     return `<div class="component-card">
         <div class="component-head">
             <div><strong>${esc(name)}</strong></div>
@@ -134,10 +215,7 @@ function componentCard(cc, results) {
         </div>
         <div class="criteria">
             <div class="criteria-list">${criteriaHtml}</div>
-            <form class="criteria-form" data-cc="${cc.id}">
-                <input class="criteria-name" placeholder="Название подкомпонента" required>
-                <button type="submit">Добавить подкомпонент</button>
-            </form>
+            ${addForm}
         </div>
     </div>`;
 }
@@ -152,7 +230,6 @@ async function loadConveyorDetail() {
             api('/audits/results'),
         ]);
         const ccs = detail.conveyor_components || [];
-
         let totalOk = 0;
         let totalCount = 0;
         if (!ccs.length) {
@@ -166,17 +243,21 @@ async function loadConveyorDetail() {
             }).join('');
             attachComponentHandlers();
         }
-
         if (!totalCount) {
             overall.innerHTML = '<p class="note">Нет данных аудитов по этому конвейеру</p>';
         } else {
             const pct = Math.round((totalOk / totalCount) * 100);
             const color = pct === 100 ? 'ok' : (pct === 0 ? 'bad' : 'warn');
-            overall.innerHTML = `<div class="bar"><div class="bar-fill ${color}" style="width:${pct}%"></div></div><p>${totalOk} из ${totalCount} проверок пройдено (${pct}%)</p>`;
+            overall.innerHTML = `<div class="bar"><div class="bar-fill ${color}" style="width:${pct}%"></div></div><span>${totalOk}/${totalCount} критериев в порядке (${pct}%)</span>`;
         }
     } catch (e) {
         list.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
+}
+
+async function submitResults(results) {
+    if (!results.length) throw new Error('Нет результатов для сохранения');
+    return await api('/audits/submit', { method: 'POST', body: JSON.stringify(results) });
 }
 
 function attachComponentHandlers() {
@@ -196,23 +277,21 @@ function attachComponentHandlers() {
 
     document.querySelectorAll('#detail-components-list button[data-criteria]').forEach((b) => {
         b.addEventListener('click', async () => {
-            if (!selectedAuditId) { alert('Сначала создайте или выберите аудит'); return; }
             try {
-                await api('/audits/results/create', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        audit_id: selectedAuditId,
-                        criteria_id: Number(b.dataset.criteria),
-                        status: b.dataset.status === 'true',
-                    }),
-                });
+                await submitResults([{
+                    criteria_id: Number(b.dataset.criteria),
+                    status: b.dataset.status === 'true',
+                    comment: null,
+                }]);
                 loadConveyorDetail();
+                loadAudits();
+                loadAuditResults();
             } catch (err) { alert('Ошибка: ' + err.message); }
         });
     });
 }
 
-/* ---------- Добавить деталь из каталога ---------- */
+/* ---------- Добавление детали на конвейер ---------- */
 document.getElementById('add-component-btn').addEventListener('click', () => {
     document.getElementById('add-component-form-wrap').classList.toggle('hidden');
 });
@@ -232,44 +311,6 @@ document.getElementById('detail-component-form').addEventListener('submit', asyn
         e.target.reset();
         msg.textContent = 'Деталь добавлена на конвейер';
         document.getElementById('add-component-form-wrap').classList.add('hidden');
-        loadConveyorDetail();
-    } catch (err) { msg.textContent = 'Ошибка: ' + err.message; }
-});
-
-/* ---------- Аудит в карточке ---------- */
-async function loadAuditSelect() {
-    const sel = document.getElementById('audit-select');
-    try {
-        const audits = await api('/audits');
-        sel.innerHTML = '<option value="">— выберите аудит —</option>' +
-            audits.map((a) => `<option value="${a.id}">#${a.id} (пользователь ${a.user_id})</option>`).join('');
-        if (selectedAuditId != null && audits.some((a) => a.id === selectedAuditId)) {
-            sel.value = String(selectedAuditId);
-        } else if (audits.length) {
-            selectedAuditId = audits[audits.length - 1].id;
-            sel.value = String(selectedAuditId);
-        } else {
-            selectedAuditId = null;
-        }
-    } catch (e) {}
-}
-
-document.getElementById('audit-select').addEventListener('change', (e) => {
-    selectedAuditId = e.target.value ? Number(e.target.value) : null;
-});
-
-document.getElementById('create-audit-btn').addEventListener('click', async () => {
-    const input = document.getElementById('audit-user-id');
-    const user_id = Number(input.value);
-    const msg = document.getElementById('audit-create-msg');
-    msg.textContent = '';
-    if (!user_id) { msg.textContent = 'Введите ID пользователя'; return; }
-    try {
-        const audit = await api('/audits/create', { method: 'POST', body: JSON.stringify({ user_id }) });
-        input.value = '';
-        selectedAuditId = audit.id;
-        await loadAuditSelect();
-        msg.textContent = 'Аудит #' + audit.id + ' создан и выбран';
         loadConveyorDetail();
     } catch (err) { msg.textContent = 'Ошибка: ' + err.message; }
 });
@@ -294,12 +335,15 @@ function renderCatalogComponents() {
 document.getElementById('catalog-component-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('catalog-component-name').value.trim();
+    const msg = document.getElementById('catalog-msg');
+    msg.textContent = '';
     if (!name) return;
     try {
         await api('/catalog/components/create', { method: 'POST', body: JSON.stringify({ name }) });
         e.target.reset();
+        msg.textContent = 'Деталь добавлена';
         loadCatalogComponents();
-    } catch (err) { alert('Ошибка: ' + err.message); }
+    } catch (err) { msg.textContent = 'Ошибка: ' + err.message; }
 });
 
 /* ---------- Аудиты ---------- */
@@ -320,29 +364,180 @@ async function loadAuditResults() {
     try {
         const rows = await api('/audits/results');
         tbody.innerHTML = rows.length
-            ? rows.map((r) => `<tr><td>${r.id}</td><td>${r.audit_id}</td><td>${r.criteria_id}</td><td>${r.status ? 'OK' : 'Проблема'}</td></tr>`).join('')
-            : '<tr><td colspan="4">Список пуст</td></tr>';
+            ? rows.map((r) => `<tr><td>${r.id}</td><td>${r.audit_id}</td><td>${r.criteria_id}</td><td>${r.status ? 'OK' : 'Проблема'}</td><td>${esc(r.comment || '')}</td></tr>`).join('')
+            : '<tr><td colspan="5">Список пуст</td></tr>';
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4" class="error">${esc(e.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="error">${esc(e.message)}</td></tr>`;
     }
 }
 
-document.getElementById('audit-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const user_id = Number(document.getElementById('audit-user').value);
-    const msg = document.getElementById('audit-msg');
-    msg.textContent = '';
+/* ---------- Вкладка «Проверка» ---------- */
+function latestCheck(results, criteriaId) {
+    const own = results.filter((r) => r.criteria_id === criteriaId);
+    if (!own.length) return { status: null, comment: null };
+    const latest = own.reduce((a, b) => (b.audit_id > a.audit_id ? b : a));
+    return { status: latest.status, comment: latest.comment ?? '' };
+}
+
+async function loadCheck() {
+    const list = document.getElementById('check-list');
+    list.innerHTML = '<p class="note">Загрузка...</p>';
     try {
-        await api('/audits/create', { method: 'POST', body: JSON.stringify({ user_id }) });
-        e.target.reset();
-        msg.textContent = 'Аудит создан';
+        const [conveyors, results] = await Promise.all([api('/conveyors'), api('/audits/results')]);
+        const details = await Promise.all(conveyors.map((c) => api('/conveyors/' + c.id)));
+        checkCriteria = [];
+        details.forEach((detail, i) => {
+            const conveyor = conveyors[i];
+            (detail.conveyor_components || []).forEach((cc) => {
+                (cc.criterias || []).forEach((k) => {
+                    const latest = latestCheck(results, k.id);
+                    checkCriteria.push({
+                        criteriaId: k.id,
+                        name: k.name,
+                        conveyorId: conveyor.id,
+                        conveyorName: conveyor.name,
+                        initialStatus: latest.status,
+                        initialComment: latest.comment,
+                        status: latest.status,
+                        comment: latest.comment,
+                    });
+                });
+            });
+        });
+        renderCheck();
+    } catch (e) {
+        list.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+}
+
+function isDirty(c) {
+    return c.status !== c.initialStatus || (c.comment || '') !== (c.initialComment || '');
+}
+
+function updateCheckDirty() {
+    const dirtyCount = checkCriteria.filter(isDirty).length;
+    document.getElementById('check-dirty-count').textContent = dirtyCount;
+    document.getElementById('submit-check-btn').disabled = dirtyCount === 0;
+}
+
+function checkRow(c) {
+    const checked = c.status === true;
+    const noData = c.initialStatus === null;
+    const dirty = isDirty(c);
+    return `<div class="check-row${dirty ? ' dirty' : ''}" data-criteria="${c.criteriaId}">
+        <label class="switch">
+            <input type="checkbox" ${checked ? 'checked' : ''}>
+            <span class="slider"></span>
+        </label>
+        <span class="check-state">${checked ? 'ОК' : 'Проблема'}</span>
+        <span class="check-name">${esc(c.name)}${noData ? ' <span class="note">(нет данных)</span>' : ''}</span>
+        <input type="text" class="check-comment" placeholder="Комментарий (что не так)" value="${esc(c.comment || '')}">
+    </div>`;
+}
+
+function renderCheck() {
+    const list = document.getElementById('check-list');
+    if (!checkCriteria.length) {
+        list.innerHTML = '<p class="note">Нет критериев для проверки. Добавьте конвейеры, детали и подкомпоненты.</p>';
+        updateCheckDirty();
+        return;
+    }
+    const byConveyor = {};
+    checkCriteria.forEach((c) => {
+        if (!byConveyor[c.conveyorId]) byConveyor[c.conveyorId] = { name: c.conveyorName, items: [] };
+        byConveyor[c.conveyorId].items.push(c);
+    });
+    const groups = Object.values(byConveyor);
+    list.innerHTML = groups.map((g, i) => {
+        return `<details class="check-conveyor" ${i === 0 ? 'open' : ''}>
+            <summary><strong>${esc(g.name)}</strong></summary>
+            <div class="check-rows">${g.items.map(checkRow).join('')}</div>
+        </details>`;
+    }).join('');
+    attachCheckHandlers();
+    updateCheckDirty();
+}
+
+function attachCheckHandlers() {
+    document.querySelectorAll('#check-list .check-row').forEach((row) => {
+        const id = Number(row.dataset.criteria);
+        const item = checkCriteria.find((c) => c.criteriaId === id);
+        if (!item) return;
+        const cb = row.querySelector('input[type="checkbox"]');
+        const comment = row.querySelector('.check-comment');
+        const state = row.querySelector('.check-state');
+        cb.addEventListener('change', () => {
+            item.status = cb.checked;
+            if (state) state.textContent = cb.checked ? 'ОК' : 'Проблема';
+            row.classList.toggle('dirty', isDirty(item));
+            updateCheckDirty();
+        });
+        comment.addEventListener('input', () => {
+            item.comment = comment.value.trim();
+            row.classList.toggle('dirty', isDirty(item));
+            updateCheckDirty();
+        });
+    });
+}
+
+document.getElementById('submit-check-btn').addEventListener('click', async () => {
+    const msg = document.getElementById('check-msg');
+    msg.textContent = '';
+    const dirty = checkCriteria.filter(isDirty).map((c) => ({
+        criteria_id: c.criteriaId,
+        status: c.status === true,
+        comment: c.comment || null,
+    }));
+    if (!dirty.length) return;
+    try {
+        const res = await submitResults(dirty);
+        msg.textContent = 'Проверка сохранена: аудит #' + res.audit.id + ', критериев: ' + res.results.length;
+        loadCheck();
         loadAudits();
-    } catch (err) { msg.textContent = 'Ошибка: ' + err.message; }
+        loadAuditResults();
+    } catch (err) {
+        msg.textContent = 'Ошибка: ' + err.message;
+    }
+});
+
+/* ---------- Пользователи (админ) ---------- */
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('register-msg');
+    msg.textContent = '';
+    const username = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    const role = document.getElementById('register-role').value;
+    try {
+        await api('/auth/register', { method: 'POST', body: JSON.stringify({ username, password, role }) });
+        e.target.reset();
+        msg.textContent = 'Пользователь создан';
+    } catch (err) {
+        msg.textContent = 'Ошибка: ' + err.message;
+    }
 });
 
 /* ---------- Старт ---------- */
-loadConveyors();
-loadCatalogComponents();
-loadAuditSelect();
-loadAudits();
-loadAuditResults();
+function loadAll() {
+    loadConveyors();
+    loadCatalogComponents();
+    loadAudits();
+    loadAuditResults();
+    if (document.getElementById('tab-check').classList.contains('active')) loadCheck();
+}
+
+async function init() {
+    if (token) {
+        try {
+            await loadMe();
+            showApp();
+            loadAll();
+        } catch (e) {
+            logout();
+        }
+    } else {
+        logout();
+    }
+}
+
+init();

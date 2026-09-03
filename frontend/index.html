@@ -7,154 +7,192 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <header class="topbar">
-        <h1>Мониторинг конвейеров</h1>
-    </header>
+    <div id="login-screen" class="login-screen">
+        <form id="login-form" class="login-card">
+            <h1>Вход</h1>
+            <label>Email
+                <input id="login-email" type="email" required autocomplete="username">
+            </label>
+            <label>Пароль
+                <input id="login-password" type="password" required autocomplete="current-password">
+            </label>
+            <button type="submit">Войти</button>
+            <p class="form-msg" id="login-msg"></p>
+        </form>
+    </div>
 
-    <nav class="tabs">
-        <button class="tab active" data-tab="conveyors">Конвейеры</button>
-        <button class="tab" data-tab="catalog">Каталог</button>
-        <button class="tab" data-tab="audits">Аудиты</button>
-    </nav>
+    <div id="app" class="hidden">
+        <header class="topbar">
+            <h1>Мониторинг конвейеров</h1>
+            <div class="userbar">
+                <span id="current-user"></span>
+                <button id="logout-btn" class="secondary">Выйти</button>
+            </div>
+        </header>
 
-    <main>
-        <!-- Конвейеры -->
-        <section id="tab-conveyors" class="tab-panel active">
-            <div id="conveyors-view">
-                <div class="grid">
+        <nav class="tabs">
+            <button class="tab active" data-tab="conveyors">Конвейеры</button>
+            <button class="tab" data-tab="catalog">Каталог</button>
+            <button class="tab" data-tab="check">Проверка</button>
+            <button class="tab" data-tab="audits">Аудиты</button>
+            <button class="tab admin-only" data-tab="users">Пользователи</button>
+        </nav>
+
+        <main>
+            <section id="tab-conveyors" class="tab-panel active">
+                <div id="conveyors-view">
+                    <div class="grid">
+                        <article class="admin-only">
+                            <h2>Создать конвейер</h2>
+                            <form id="conveyor-form">
+                                <label>Название
+                                    <input id="conveyor-name" required>
+                                </label>
+                                <label>Описание
+                                    <input id="conveyor-desc" required>
+                                </label>
+                                <button type="submit">Добавить</button>
+                            </form>
+                            <p class="form-msg" id="conveyor-msg"></p>
+                        </article>
+                        <article>
+                            <h2>Список конвейеров</h2>
+                            <table>
+                                <thead>
+                                    <tr><th>ID</th><th>Название</th><th>Описание</th><th></th></tr>
+                                </thead>
+                                <tbody id="conveyors-list">
+                                    <tr><td colspan="4">Загрузка...</td></tr>
+                                </tbody>
+                            </table>
+                        </article>
+                    </div>
+                </div>
+
+                <div id="conveyor-detail-view" class="hidden">
+                    <button id="back-to-conveyors" class="secondary">← Назад к списку</button>
+                    <h2 id="detail-title"></h2>
+
                     <article>
-                        <h2>Создать конвейер</h2>
-                        <form id="conveyor-form">
+                        <h2>Общее состояние конвейера</h2>
+                        <div id="detail-overall">
+                            <p class="note">Загрузка...</p>
+                        </div>
+                    </article>
+
+                    <article>
+                        <h2>Детали конвейера</h2>
+                        <button id="add-component-btn" class="admin-only">Добавить деталь</button>
+
+                        <div id="add-component-form-wrap" class="hidden">
+                            <form id="detail-component-form">
+                                <label>Деталь из каталога
+                                    <select id="detail-component-select" required></select>
+                                </label>
+                                <button type="submit">Добавить</button>
+                                <button type="button" id="cancel-component-btn" class="secondary">Отмена</button>
+                            </form>
+                            <p class="form-msg" id="detail-component-msg"></p>
+                        </div>
+
+                        <div id="detail-components-list">
+                            <p class="note">Загрузка...</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="tab-catalog" class="tab-panel">
+                <div class="grid">
+                    <article class="admin-only">
+                        <h2>Детали (каталог)</h2>
+                        <form id="catalog-component-form">
                             <label>Название
-                                <input id="conveyor-name" required>
-                            </label>
-                            <label>Описание
-                                <input id="conveyor-desc" required>
+                                <input id="catalog-component-name" required>
                             </label>
                             <button type="submit">Добавить</button>
                         </form>
-                        <p class="form-msg" id="conveyor-msg"></p>
+                        <p class="form-msg" id="catalog-msg"></p>
                     </article>
                     <article>
-                        <h2>Список конвейеров</h2>
+                        <h2>Каталог деталей</h2>
                         <table>
                             <thead>
-                                <tr><th>ID</th><th>Название</th><th>Описание</th><th></th></tr>
+                                <tr><th>ID</th><th>Название</th></tr>
                             </thead>
-                            <tbody id="conveyors-list">
-                                <tr><td colspan="4">Загрузка...</td></tr>
+                            <tbody id="catalog-components-list">
+                                <tr><td colspan="2">Загрузка...</td></tr>
                             </tbody>
                         </table>
                     </article>
                 </div>
-            </div>
+            </section>
 
-            <div id="conveyor-detail-view" class="hidden">
-                <button id="back-to-conveyors" class="secondary">← Назад к списку</button>
-                <h2 id="detail-title"></h2>
-
+            <section id="tab-check" class="tab-panel">
                 <article>
-                    <h2>Аудит</h2>
-                    <label>Текущий аудит
-                        <select id="audit-select"></select>
-                    </label>
-                    <div class="inline-form">
-                        <input id="audit-user-id" type="number" placeholder="ID пользователя">
-                        <button id="create-audit-btn">Создать аудит</button>
+                    <div class="check-toolbar">
+                        <h2>Проверка</h2>
+                        <div class="check-toolbar-right">
+                            <span class="note">Изменений: <span id="check-dirty-count">0</span></span>
+                            <button id="submit-check-btn" disabled>Сохранить проверку</button>
+                        </div>
                     </div>
-                    <p class="form-msg" id="audit-create-msg"></p>
+                    <p class="form-msg" id="check-msg"></p>
+                    <div id="check-list"></div>
                 </article>
+            </section>
 
+            <section id="tab-audits" class="tab-panel">
+                <div class="grid">
+                    <article>
+                        <h2>Аудиты</h2>
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Пользователь</th><th>Создан</th></tr>
+                            </thead>
+                            <tbody id="audits-list">
+                                <tr><td colspan="3">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </article>
+                    <article class="wide">
+                        <h2>Результаты аудитов</h2>
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Аудит</th><th>Критерий</th><th>Статус</th><th>Комментарий</th></tr>
+                            </thead>
+                            <tbody id="audit-results-list">
+                                <tr><td colspan="5">Загрузка...</td></tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
+            </section>
+
+            <section id="tab-users" class="tab-panel admin-only">
                 <article>
-                    <h2>Общее состояние конвейера</h2>
-                    <div id="detail-overall">
-                        <p class="note">Загрузка...</p>
-                    </div>
-                </article>
-
-                <article>
-                    <h2>Детали конвейера</h2>
-                    <button id="add-component-btn">Добавить деталь</button>
-
-                    <div id="add-component-form-wrap" class="hidden">
-                        <form id="detail-component-form">
-                            <label>Деталь из каталога
-                                <select id="detail-component-select" required></select>
-                            </label>
-                            <button type="submit">Добавить</button>
-                            <button type="button" id="cancel-component-btn" class="secondary">Отмена</button>
-                        </form>
-                        <p class="form-msg" id="detail-component-msg"></p>
-                    </div>
-
-                    <div id="detail-components-list">
-                        <p class="note">Загрузка...</p>
-                    </div>
-                </article>
-            </div>
-        </section>
-
-        <!-- Каталог -->
-        <section id="tab-catalog" class="tab-panel">
-            <div class="grid">
-                <article>
-                    <h2>Детали (каталог)</h2>
-                    <form id="catalog-component-form">
-                        <label>Название
-                            <input id="catalog-component-name" required>
+                    <h2>Регистрация пользователя</h2>
+                    <form id="register-form">
+                        <label>Email
+                            <input id="register-email" type="email" required>
                         </label>
-                        <button type="submit">Добавить</button>
-                    </form>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Название</th></tr>
-                        </thead>
-                        <tbody id="catalog-components-list">
-                            <tr><td colspan="2">Загрузка...</td></tr>
-                        </tbody>
-                    </table>
-                </article>
-            </div>
-        </section>
-
-        <!-- Аудиты -->
-        <section id="tab-audits" class="tab-panel">
-            <div class="grid">
-                <article>
-                    <h2>Создать аудит</h2>
-                    <form id="audit-form">
-                        <label>ID пользователя
-                            <input id="audit-user" type="number" required>
+                        <label>Пароль
+                            <input id="register-password" type="password" required minlength="6">
                         </label>
-                        <button type="submit">Добавить</button>
+                        <label>Роль
+                            <select id="register-role">
+                                <option value="worker">worker</option>
+                                <option value="manager">manager</option>
+                                <option value="admin">admin</option>
+                            </select>
+                        </label>
+                        <button type="submit">Создать</button>
                     </form>
-                    <p class="form-msg" id="audit-msg"></p>
+                    <p class="form-msg" id="register-msg"></p>
                 </article>
-                <article>
-                    <h2>Аудиты</h2>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Пользователь</th><th>Создан</th></tr>
-                        </thead>
-                        <tbody id="audits-list">
-                            <tr><td colspan="3">Загрузка...</td></tr>
-                        </tbody>
-                    </table>
-                </article>
-                <article class="wide">
-                    <h2>Результаты аудитов</h2>
-                    <table>
-                        <thead>
-                            <tr><th>ID</th><th>Аудит</th><th>Критерий</th><th>Статус</th></tr>
-                        </thead>
-                        <tbody id="audit-results-list">
-                            <tr><td colspan="4">Загрузка...</td></tr>
-                        </tbody>
-                    </table>
-                </article>
-            </div>
-        </section>
-    </main>
+            </section>
+        </main>
+    </div>
 
     <script src="/static/app.js"></script>
 </body>

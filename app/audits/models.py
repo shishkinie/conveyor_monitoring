@@ -1,7 +1,7 @@
 from app.database import Base
 
 from datetime import datetime
-from sqlalchemy import Integer, Boolean, ForeignKey, func
+from sqlalchemy import Integer, Boolean, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -20,5 +20,6 @@ class AuditResult(Base):
     audit_id: Mapped[int] = mapped_column(ForeignKey("audits.id"))
     criteria_id: Mapped[int] = mapped_column(ForeignKey("criterias.id"))
     status: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    comment: Mapped[str] = mapped_column(String, nullable=True)
 
     criteria: Mapped["Criteria"] = relationship()

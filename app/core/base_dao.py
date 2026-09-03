@@ -29,7 +29,8 @@ class BaseDAO:
         model = cls.model(**data)
 
         session.add(model)
-        await session.commit()
+
+        await session.flush()
         await session.refresh(model)
         return model
 
@@ -38,9 +39,7 @@ class BaseDAO:
  
         model = await cls.find_by_id(id, session)
 
-        
         await session.delete(model)
-        await session.commit()
         return model
     
       

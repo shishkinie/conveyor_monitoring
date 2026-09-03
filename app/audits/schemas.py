@@ -2,10 +2,6 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-class AuditCreate(BaseModel):
-    user_id: int
-
-
 class AuditRead(BaseModel):
     id: int
     user_id: int
@@ -15,9 +11,9 @@ class AuditRead(BaseModel):
 
 
 class AuditResultCreate(BaseModel):
-    audit_id: int
     criteria_id: int
     status: bool
+    comment: str|None = None
 
 
 class AuditResultRead(BaseModel):
@@ -25,5 +21,11 @@ class AuditResultRead(BaseModel):
     audit_id: int
     criteria_id: int
     status: bool
+    comment: str|None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AuditSubmitRead(BaseModel):
+    audit: AuditRead
+    results: list[AuditResultRead]

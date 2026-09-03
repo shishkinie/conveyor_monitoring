@@ -7,13 +7,20 @@ class UserBaseSchema(BaseModel):
 
 
 
-class UserCreateSchema(UserBaseSchema):
+class MeRead(UserBaseSchema):
+
+    id: int
+    role: str
+    
+    model_config = {'from_attributes': True}
+
+class UserCreate(UserBaseSchema):
 
     password: str = Field(min_length=6, max_length=50)
     role: UserRoleEnum
 
 
-class UserResponseSchema(UserBaseSchema):
+class UserRead(UserBaseSchema):
 
     id: int
 
