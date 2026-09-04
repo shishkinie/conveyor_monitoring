@@ -120,6 +120,11 @@ th { background: #f8fafc; color: #52606d; }
 .check-rows { padding: 0 16px 12px; }
 .check-row { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid #eef0f2; }
 .check-row.dirty { background: #fffbeb; }
+.check-row.flash { animation: row-flash 1.5s ease-out; }
+@keyframes row-flash {
+    0% { background: #fde68a; }
+    100% { background: transparent; }
+}
 .switch { position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #dc2626; border-radius: 26px; transition: background 0.2s; }

@@ -80,15 +80,17 @@ function applyRole() {
 }
 
 /* ---------- Табы ---------- */
+function activateTab(name) {
+    document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+
 document.querySelectorAll('.tab').forEach((btn) => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-        btn.classList.add('active');
-        const panel = document.getElementById('tab-' + btn.dataset.tab);
-        if (panel) panel.classList.add('active');
+        activateTab(btn.dataset.tab);
         if (btn.dataset.tab === 'check') loadCheck();
         if (btn.dataset.tab === 'audits') { loadAudits(); loadAuditResults(); }
+        if (btn.dataset.tab === 'conveyors' && currentConveyor) loadConveyorDetail();
     });
 });
 
@@ -275,17 +277,30 @@ function attachComponentHandlers() {
         });
     });
 
+    // Кнопки «ОК»/«Проблема» не создают аудит сразу: переводим пользователя
+    // на вкладку «Проверка», отмечаем критерий, аудит сохраняется одной кнопкой.
     document.querySelectorAll('#detail-components-list button[data-criteria]').forEach((b) => {
         b.addEventListener('click', async () => {
             try {
-                await submitResults([{
-                    criteria_id: Number(b.dataset.criteria),
-                    status: b.dataset.status === 'true',
-                    comment: null,
-                }]);
-                loadConveyorDetail();
-                loadAudits();
-                loadAuditResults();
+                const criteriaId = Number(b.dataset.criteria);
+                const status = b.dataset.status === 'true';
+                activateTab('check');
+                await loadCheck();
+                const item = checkCriteria.find((c) => c.criteriaId === criteriaId);
+                if (!item) { alert('Критерий не найден в списке проверки'); return; }
+                item.status = status;
+                const row = document.querySelector('#check-list .check-row[data-criteria="' + criteriaId + '"]');
+                if (row) {
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    const state = row.querySelector('.check-state');
+                    if (cb) cb.checked = status;
+                    if (state) state.textContent = status ? 'ОК' : 'Проблема';
+                    row.classList.toggle('dirty', isDirty(item));
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    row.classList.add('flash');
+                    setTimeout(() => row.classList.remove('flash'), 1500);
+                }
+                updateCheckDirty();
             } catch (err) { alert('Ошибка: ' + err.message); }
         });
     });
